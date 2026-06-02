@@ -30,3 +30,7 @@ volumes: - pgdata:/var/lib/postgresql/data
 ## Database connection String:
 
 `postgresql://postgres:password@localhost:5432/ai_platform`
+
+# Server setup:
+
+- Create virtual venv `venv` and pip install uvicorn and fastapi
