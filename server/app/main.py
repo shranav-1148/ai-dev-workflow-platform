@@ -7,6 +7,13 @@ from app.api.auth import router as auth_router
 from app.api.messages import router as messages_router
 from app.api.users import router as users_router
 
+from app.db.database import engine
+from app.db.base import Base
+
+import app.models.repositories
+
+Base.metadata.create_all(bind = engine)
+
 app = FastAPI()
 
 app.include_router(health_router)
