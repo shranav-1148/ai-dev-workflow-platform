@@ -1,5 +1,5 @@
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, SessionLocal
 from dotenv import load_dotenv
 import os
 
@@ -14,3 +14,12 @@ SessionLocal = sessionmaker(
     autoflush=False,
     bind=engine
 )
+
+# db dependency injection: get_db will be used in the routes to get a database session
+def get_db():
+    db = SessionLocal()
+
+    try:
+        yield db
+    finally:
+        db.close()
