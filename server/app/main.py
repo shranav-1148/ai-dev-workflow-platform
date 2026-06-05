@@ -12,7 +12,6 @@ from app.db.base import Base
 
 import app.models.repositories
 
-Base.metadata.create_all(bind = engine)
 
 app = FastAPI()
 

@@ -9,3 +9,5 @@ class Repository(Base):
     id : Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String)
     github_url: Mapped[str] = mapped_column(String)
+
+    description : Mapped[str | None] = mapped_column(String, nullable = True)
