@@ -1,0 +1,7 @@
+server/.env
+.env
+
+
+__pycache__
+test
+venv
