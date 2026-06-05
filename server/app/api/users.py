@@ -23,8 +23,11 @@ def get_user(id: int, db : Session = Depends(get_db)):
 @router.post("/", response_model=UserResponse)
 def create_user(user: UserCreate, db:Session = Depends(get_db)):
     db_repo = User(
-        name=user.name,
-        email=user.email
+        id=user.id,
+        username=user.username,
+        email=user.email,
+        github_id = user.github_id,
+        created_at = user.created_at
     )
 
     db.add(db_repo)
