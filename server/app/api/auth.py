@@ -1,10 +1,10 @@
 from http.client import HTTPException
 
-from fastapi import APIRouter
-from server.app.schemas.user import UserResponse, UserRegister, userLogin, Token
-from server.app.db.database import get_db
-from sqlalchemy.orm import Session, Depends
-from server.app.models.user import User
+from fastapi import APIRouter, Depends
+from app.schemas.user import UserResponse, UserRegister, UserLogin, Token
+from app.db.database import get_db
+from sqlalchemy.orm import Session
+from app.models.user import User
 
 from app.core.security import hash_password, verify_password, create_access_token
 
@@ -20,11 +20,13 @@ def register_user(user: UserRegister, db: Session = Depends(get_db)):
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
     
+    print(user.password)
+    print(len(user.password))
     hashed_password = hash_password(user.password)
     db_user = User(
         username = user.username,
         email = user.email,
-        password = hashed_password
+        hashed_password = hashed_password
     )
 
     db.add(db_user)
@@ -43,7 +45,7 @@ def login_user(user: UserLogin, db: Session = Depends(get_db)):
     if not db_user:
         raise HTTPException(status_code=400, detail="Invalid email or password")
     
-    if not verify_password(user.password, db_user.password):
+    if not verify_password(user.password, db_user.hashed_password):
         raise HTTPException(status_code=400, detail="Invalid credentials")
     
     token = create_access_token(
