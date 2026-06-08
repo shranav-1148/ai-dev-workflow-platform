@@ -1,6 +1,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException
 from app.schemas.user import UserResponse, UserRegister, UserLogin, Token
+from app.core.security import get_current_user
 from app.db.database import get_db
 from sqlalchemy.orm import Session
 from app.models.user import User
@@ -48,7 +49,7 @@ def login_user(user: UserLogin, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Invalid credentials")
     
     token = create_access_token(
-        data={"sub": str(db_user.id)}
+        data={"user_id": str(db_user.id)}
     )
 
     finalToken = Token(
@@ -58,5 +59,10 @@ def login_user(user: UserLogin, db: Session = Depends(get_db)):
     )
 
     return finalToken
+
+
+@router.get("/me")
+def get_me(current_user: User = Depends(get_current_user)):
+    return current_user
 
 
