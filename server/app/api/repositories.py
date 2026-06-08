@@ -27,6 +27,7 @@ def get_repository(
         db : Session = Depends(get_db),
         current_user: User = Depends(get_current_user)    
     ):
+    '''Get a repository of the current user based on repo id'''
 
     repo = db.query(Repository).filter(
         Repository.id == repo_id,
@@ -45,6 +46,7 @@ def create_repository(
         db:Session = Depends(get_db), 
         current_user: User= Depends(get_current_user)
     ):
+    '''Creating a new repository for a current user'''
 
     db_repo = Repository(
         name=repo.name,
