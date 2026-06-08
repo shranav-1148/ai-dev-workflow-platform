@@ -1,30 +1,57 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from app.schemas.repositories import RepositoryCreate, RepositoryResponse
 from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.models.repositories import Repository
+from app.core.security import get_current_user
+from app.models.user import User
 
 
 router = APIRouter(prefix="/repositories")
 
 @router.get("/", response_model=list[RepositoryResponse])
-def get_repositories(db : Session = Depends(get_db)):
-    repositories = db.query(Repository).all()
+def get_repositories(
+        db : Session = Depends(get_db),
+        current_user: User = Depends(get_current_user)
 
-    return repositories
+    ):
+    '''Get all repositories of current user'''
+
+    return db.query(Repository).filter(
+        Repository.user_id == current_user.id
+    ).all()
 
 @router.get("/{repo_id}", response_model=RepositoryResponse)
-def get_repository(repo_id: int, db : Session = Depends(get_db)):
-    repository = db.query(Repository).filter(Repository.id == repo_id).first()
+def get_repository(
+        repo_id: int,
+        db : Session = Depends(get_db),
+        current_user: User = Depends(get_current_user)    
+    ):
+    '''Get a repository of the current user based on repo id'''
+
+    repo = db.query(Repository).filter(
+        Repository.id == repo_id,
+        Repository.user_id == current_user.id
+    ).first()
+
+    if not repo:
+        raise HTTPException(status_code=404, detail="Not Found")
     
-    return repository
+    return repo
 
 
 @router.post("/", response_model=RepositoryResponse)
-def create_repository(repo: RepositoryCreate, db:Session = Depends(get_db)):
+def create_repository(
+        repo: RepositoryCreate, 
+        db:Session = Depends(get_db), 
+        current_user: User= Depends(get_current_user)
+    ):
+    '''Creating a new repository for a current user'''
+
     db_repo = Repository(
         name=repo.name,
-        github_url=repo.github_url
+        github_url=repo.github_url,
+        user_id = current_user.id
     )
 
     db.add(db_repo)

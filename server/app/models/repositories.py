@@ -1,4 +1,4 @@
-from sqlalchemy import Integer, String
+from sqlalchemy import Integer, String, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -11,3 +11,5 @@ class Repository(Base):
     github_url: Mapped[str] = mapped_column(String)
 
     description : Mapped[str | None] = mapped_column(String, nullable = True)
+
+    user_id : Mapped[int] = mapped_column(ForeignKey("users.id"))
