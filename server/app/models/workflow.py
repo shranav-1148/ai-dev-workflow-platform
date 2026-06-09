@@ -17,7 +17,7 @@ class Workflow(Base):
         ForeignKey("repositories.id")
     )
 
-    repository = relationship("Repository", back_populate="workflows")
+    repository = relationship("Repository", back_populates="workflows")
 
     created_at: Mapped[datetime] = mapped_column(
         server_default=func.now()
@@ -27,4 +27,4 @@ class Workflow(Base):
         onupdate=func.now()
     )
 
-    steps = relationship("WorkflowStep", back_populate = "workflow", cascade="all, delete-orphan")
+    steps = relationship("WorkflowStep", back_populates = "workflow", cascade="all, delete-orphan")

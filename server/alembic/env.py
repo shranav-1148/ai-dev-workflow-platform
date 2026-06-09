@@ -34,6 +34,7 @@ from app.db.base import Base
 from app.models.repositories import Repository
 from app.models.user import User
 from app.models.workflow import Workflow
+from app.models.workflowStep import WorkflowStep
 target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,

@@ -19,5 +19,5 @@ class Repository(Base):
     workflows = relationship(
         "Workflow",
         back_populates = "repository",
-        cascade = "all, delete-orpahn"
+        cascade = "all, delete-orphan"
     )
