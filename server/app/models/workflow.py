@@ -26,3 +26,5 @@ class Workflow(Base):
         server_default = func.now(),
         onupdate=func.now()
     )
+
+    steps = relationship("WorkflowStep", back_populate = "workflow", cascade="all, delete-orphan")
