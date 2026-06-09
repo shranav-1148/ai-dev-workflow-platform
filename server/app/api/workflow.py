@@ -49,7 +49,7 @@ def get_workflows(
     repository = db.query(Repository).filter(
         Repository.id == repo_id,
         Repository.user_id == current_user.id
-    )
+    ).first()
 
     if not repository:
         raise HTTPException(status_code = 404, detail="Repository not found")
