@@ -9,13 +9,6 @@ from app.models.repositories import Repository
 
 router = APIRouter(prefix="")
 
-'''
-POST   /repositories/{repo_id}/workflows
-GET    /repositories/{repo_id}/workflows
-GET    /workflows/{workflow_id}
-PATCH  /workflows/{workflow_id}
-DELETE /workflows/{workflow_id}
-'''
 
 @router.post("/repositories/{repo_id}/workflows", response_model=WorkflowResponse)
 def create_workflow(
@@ -28,7 +21,7 @@ def create_workflow(
     repository = db.query(Repository).filter(
         Repository.id == repo_id,
         Repository.user_id == current_user.id
-    )
+    ).first()
 
     if not repository:
         raise HTTPException(status_code = 404, detail="Repository not found")
