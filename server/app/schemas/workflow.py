@@ -11,7 +11,7 @@ class WorkflowResponse(BaseModel):
     name: str
     description: str | None
 
-    respository_id: int
+    repository_id: int
 
     created_at: datetime
     updated_at: datetime

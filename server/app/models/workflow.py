@@ -1,6 +1,6 @@
 from datetime import datetime
 from sqlalchemy import Integer, String, ForeignKey
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
 from app.db.base import Base
@@ -16,6 +16,8 @@ class Workflow(Base):
     repository_id: Mapped[int] = mapped_column(
         ForeignKey("repositories.id")
     )
+
+    repository = relationship("Repository", back_populate="workflows")
 
     created_at: Mapped[datetime] = mapped_column(
         server_default=func.now()
