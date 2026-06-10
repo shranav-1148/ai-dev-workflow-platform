@@ -121,7 +121,7 @@ def update_step(
 
     return step 
 
-@router.delete("/steps/{step_id}", response_model = WorkflowStepResponse)
+@router.delete("/steps/{step_id}", status_code = 204)
 def delete_step(
     step_id: int,
     db: Session = Depends(get_db),
@@ -146,6 +146,5 @@ def delete_step(
     db.delete(step)
     db.commit()
 
-    return step
 
     
