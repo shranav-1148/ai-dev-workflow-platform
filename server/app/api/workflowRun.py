@@ -3,6 +3,8 @@ from app.schemas.workflowRun import WorkflowRunResponse
 from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.models.workflowRun import WorkflowRun
+from app.models.workflowStep import WorkflowStep
+from app.models.workflowStepRun import WorkflowStepRun
 from app.core.security import get_current_user
 from app.models.user import User
 from app.models.repositories import Repository
@@ -35,12 +37,54 @@ def create_run(
         ).first()
     )
 
+    if not workflow:
+        raise HTTPException(
+            status_code = 404,
+            detail="Workflow not found"
+        )
+
     run = WorkflowRun(
         workflow_id = workflow_id,
-        status="Running"
+        status="running"
     )
 
     db.add(run)
+    db.commit()
+    db.refresh(run)
+
+    steps = (
+        db.query(WorkflowStep)
+        .filter(
+            WorkflowStep.workflow_id == workflow_id
+        )
+        .order_by(WorkflowStep.order)
+        .all()
+    )
+
+    for step in steps:
+        step_run = WorkflowStepRun(
+            workflow_run_id = run.id,
+            workflow_step_id = step.id,
+            status="running"
+        )
+
+        db.add(step_run)
+        db.commit()
+        db.refresh(step_run)
+
+        # Placeholder execution
+        output = {
+            "message" : f"executed step {step.name}",
+            "step_type" : step.step_type
+        }
+
+        step_run.output = output
+        step_run.status = "completed"
+
+        db.commit()
+    
+    run.status = "completed"
+
     db.commit()
     db.refresh(run)
 
@@ -92,7 +136,7 @@ def get_run(
         .filter(
             WorkflowRun.id == run_id,
             Repository.user_id == current_user.id
-        ).fiirst()
+        ).first()
     )
 
     if not run:
