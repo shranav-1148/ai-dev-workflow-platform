@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from app.schemas.workflowRun import WorkflowRunResponse
+from app.schemas.workflowStepRun import WorkflowStepRunResponse
 from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.models.workflowRun import WorkflowRun
@@ -161,3 +162,66 @@ def get_run(
         )
 
     return run
+
+
+@router.get("/runs/{run_id}/steps", response_model = list[WorkflowStepRunResponse])
+def get_steps_from_run(
+    run_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    '''Return everything that happened during workflow run step-by-step'''
+    run = (
+        db.query(WorkflowRun)
+        .join(Workflow)
+        .join(Repository)
+        .filter(
+            WorkflowRun.id == run_id,
+            Repository.user_id == current_user.id
+        ).first()
+    )
+
+    if not run:
+        raise HTTPException(
+            status_code=404,
+            detail="Run not found"
+        )
+    
+    step_runs = (
+        db.query(WorkflowStepRun)
+        .filter(
+            WorkflowStepRun.workflow_run_id == run_id
+        ).all()
+    )
+
+    return step_runs
+
+
+@router.get("/runs/{run_id}/steps/{step_run_id}", response_model = WorkflowStepRunResponse)
+def get_one_step_from_run(
+    run_id: int,
+    step_run_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    '''Shoe detailed information for one step execution'''
+
+    step_run = (
+        db.query(WorkflowStepRun)
+        .join(WorkflowRun)
+        .join(Workflow)
+        .join(Repository)
+        .filter(
+            WorkflowStepRun.id == step_run_id,
+            WorkflowRun.id == run_id,
+            Repository.user_id == current_user.id
+        ).first()
+    )
+
+    if not step_run:
+        raise HTTPException(
+            status_code=404,
+            detail="Step run not found"
+        )
+    
+    return step_run
