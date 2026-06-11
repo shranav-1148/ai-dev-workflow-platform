@@ -24,6 +24,7 @@ def create_workflowStep(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    '''Create a new step for a specified workflow'''
     workflow = (
         db.query(Workflow)
         .join(Repository)
@@ -60,6 +61,7 @@ def get_workflowStep(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    '''Get the steps of a specified workflow'''
     workflow = (
         db.query(Workflow)
         .join(Repository)
@@ -93,6 +95,7 @@ def update_step(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    '''Update a specific workflow step'''
     step = (
         db.query(WorkflowStep)
         .join(Workflow)
@@ -127,6 +130,8 @@ def delete_step(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    
+    '''Delete a workflow step'''
     step = (
         db.query(WorkflowStep)
         .join(Workflow)

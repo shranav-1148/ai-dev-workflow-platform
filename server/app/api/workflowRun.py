@@ -26,7 +26,7 @@ def create_run(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    
+    '''Create a new workflow run, effectively running a workflow'''
     workflow = (
         db.query(Workflow)
         .join(Repository)
@@ -62,26 +62,35 @@ def create_run(
     )
 
     for step in steps:
-        step_run = WorkflowStepRun(
-            workflow_run_id = run.id,
-            workflow_step_id = step.id,
-            status="running"
-        )
+        try:
+            step_run = WorkflowStepRun(
+                workflow_run_id = run.id,
+                workflow_step_id = step.id,
+                status="running"
+            )
 
-        db.add(step_run)
-        db.commit()
-        db.refresh(step_run)
+            db.add(step_run)
+            db.commit()
+            db.refresh(step_run)
 
-        # Placeholder execution
-        output = {
-            "message" : f"executed step {step.name}",
-            "step_type" : step.step_type
-        }
+            # Placeholder execution
+            output = {
+                "message" : f"executed step {step.name}",
+                "step_type" : step.step_type
+            }
 
-        step_run.output = output
-        step_run.status = "completed"
+            step_run.output = output
+            step_run.status = "completed"
 
-        db.commit()
+            db.commit()
+        except Exception as e:
+            step_run.status="failed"
+            step_run.error_message = str(e)
+
+            run.status = "failed"
+            db.commit()
+
+            raise
     
     run.status = "completed"
 
@@ -97,6 +106,9 @@ def get_runs(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    '''
+        Get all runs of the specified workflow
+    '''
     workflow = (
         db.query(Workflow)
         .join(Repository)
@@ -129,6 +141,9 @@ def get_run(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    '''
+        Get a specified run information
+    '''
     run = (
         db.query(WorkflowRun)
         .join(Workflow)
