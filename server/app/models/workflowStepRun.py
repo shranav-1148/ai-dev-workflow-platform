@@ -32,3 +32,10 @@ class WorkflowStepRun(Base):
     )
 
     completed_at: Mapped[datetime | None]
+
+    workflow_step = relationship(
+        "WorkflowStep",
+        back_populates = "step_runs"
+    )
+
+    

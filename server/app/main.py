@@ -7,6 +7,8 @@ from app.api.auth import router as auth_router
 from app.api.messages import router as messages_router
 from app.api.users import router as users_router
 from app.api.workflow import router as workflow_router
+from app.api.workflowRun import router as workflowRun_router
+from app.api.workflowStep import router as workflowStep_router
 
 
 
@@ -19,3 +21,5 @@ app.include_router(auth_router)
 app.include_router(messages_router)
 app.include_router(users_router)
 app.include_router(workflow_router)
+app.include_router(workflowRun_router)
+app.include_router(workflowStep_router)

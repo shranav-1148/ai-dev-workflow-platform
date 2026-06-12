@@ -39,7 +39,7 @@ def create_workflow(
     return db_workflow
 
 
-@router.get("/repositories/{repo_id}/workflows", response_model = WorkflowResponse)
+@router.get("/repositories/{repo_id}/workflows", response_model = list[WorkflowResponse])
 def get_workflows(
     repo_id: int,
     db: Session = Depends(get_db),

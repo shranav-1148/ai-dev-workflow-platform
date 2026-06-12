@@ -21,3 +21,9 @@ class WorkflowStep(Base):
     )
 
     workflow = relationship("Workflow", back_populates = "steps")
+
+    step_runs = relationship(
+        "WorkflowStepRun",
+        back_populates = "workflow_step",
+        cascade = "all, delete-orphan"
+    )

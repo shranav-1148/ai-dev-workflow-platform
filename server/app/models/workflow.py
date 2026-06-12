@@ -2,6 +2,8 @@ from datetime import datetime
 from sqlalchemy import Integer, String, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
+from app.models.workflowRun import WorkflowRun
+from app.models.workflowStep import WorkflowStep
 
 from app.db.base import Base
 
