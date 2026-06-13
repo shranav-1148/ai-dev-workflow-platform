@@ -33,6 +33,10 @@ if config.config_file_name is not None:
 from app.db.base import Base
 from app.models.repositories import Repository
 from app.models.user import User
+from app.models.workflow import Workflow
+from app.models.workflowStep import WorkflowStep
+from app.models.workflowRun import WorkflowRun
+from app.models.workflowStepRun import WorkflowStepRun
 target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,

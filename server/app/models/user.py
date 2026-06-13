@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from sqlalchemy import Integer, String, DateTime
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 
@@ -13,3 +13,5 @@ class User(Base):
     email: Mapped[str] = mapped_column(String, unique= True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now(timezone.utc))
     hashed_password: Mapped[str] = mapped_column(String)
+
+    repositories = relationship("Repository", back_populates = "user")
