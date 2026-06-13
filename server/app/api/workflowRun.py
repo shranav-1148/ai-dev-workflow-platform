@@ -10,6 +10,7 @@ from app.core.security import get_current_user
 from app.models.user import User
 from app.models.repositories import Repository
 from app.models.workflow import Workflow
+from app.services.workflow_executor import execute_workflow
 
 '''
 POST /workflows/{workflow_id}/run
@@ -44,61 +45,11 @@ def create_run(
             detail="Workflow not found"
         )
 
-    run = WorkflowRun(
-        workflow_id = workflow_id,
-        status="running"
-    )
-
-    db.add(run)
-    db.commit()
-    db.refresh(run)
-
-    steps = (
-        db.query(WorkflowStep)
-        .filter(
-            WorkflowStep.workflow_id == workflow_id
-        )
-        .order_by(WorkflowStep.order)
-        .all()
-    )
-
-    for step in steps:
-        try:
-            step_run = WorkflowStepRun(
-                workflow_run_id = run.id,
-                workflow_step_id = step.id,
-                status="running"
-            )
-
-            db.add(step_run)
-            db.commit()
-            db.refresh(step_run)
-
-            # Placeholder execution
-            output = {
-                "message" : f"executed step {step.name}",
-                "step_type" : step.step_type
-            }
-
-            step_run.output = output
-            step_run.status = "completed"
-
-            db.commit()
-        except Exception as e:
-            step_run.status="failed"
-            step_run.error_message = str(e)
-
-            run.status = "failed"
-            db.commit()
-
-            raise
     
-    run.status = "completed"
-
-    db.commit()
-    db.refresh(run)
-
-    return run
+    return execute_workflow(
+        workflow,
+        db
+    )
 
 
 @router.get("/workflows/{workflow_id}/runs", response_model = list[WorkflowRunResponse])
