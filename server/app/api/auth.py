@@ -80,7 +80,9 @@ def github_login():
     return RedirectResponse(url=github_url)
 
 @router.get("/auth/github/callback")
-def github_callback(code: str):
+def github_callback(
+        code: str
+    ):
 
     response = requests.post(
         "https://github.com/login/oauth/access_token",
@@ -108,6 +110,5 @@ def github_callback(code: str):
 
     return github_user.json()
 
-    return response.json()
 
 
