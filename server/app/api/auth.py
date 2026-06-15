@@ -7,7 +7,8 @@ from app.core.security import get_current_user
 from app.db.database import get_db
 from sqlalchemy.orm import Session
 from app.models.user import User
-
+import requests 
+from app.core.config import settings
 from app.core.security import hash_password, verify_password, create_access_token
 
 router = APIRouter()
@@ -80,9 +81,33 @@ def github_login():
 
 @router.get("/auth/github/callback")
 def github_callback(code: str):
-    print(code)
-    return {
-        "code": code
-    }
+
+    response = requests.post(
+        "https://github.com/login/oauth/access_token",
+        headers = {
+            "Accept": "application/json"
+        },
+        data={
+            "client_id": settings.GITHUB_CLIENT_ID,
+            "client_secret": settings.GITHUB_CLIENT_SECRET,
+            "code": code
+        }
+    )
+
+    token_data =  response.json()
+
+    access_token = token_data["access_token"]
+
+    github_user = requests.get(
+         "https://api.github.com/user",
+        headers={
+            "Authorization": f"Bearer {access_token}",
+            "Accept": "application/vnd.github+json"
+        }
+    )
+
+    return github_user.json()
+
+    return response.json()
 
 
