@@ -1,5 +1,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException
+from  fastapi.responses import RedirectResponse
+from app.core.config import settings
 from app.schemas.user import UserResponse, UserRegister, UserLogin, Token
 from app.core.security import get_current_user
 from app.db.database import get_db
@@ -64,5 +66,23 @@ def login_user(user: UserLogin, db: Session = Depends(get_db)):
 @router.get("/me")
 def get_me(current_user: User = Depends(get_current_user)):
     return current_user
+
+
+@router.get("/auth/github")
+def github_login():
+    github_url = (
+        "https://github.com/login/oauth/authorize"
+        f"?client_id={settings.GITHUB_CLIENT_ID}"
+        "&scope=repo"
+    )
+
+    return RedirectResponse(url=github_url)
+
+@router.get("/auth/github/callback")
+def github_callback(code: str):
+    print(code)
+    return {
+        "code": code
+    }
 
 
