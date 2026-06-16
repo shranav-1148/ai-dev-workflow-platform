@@ -3,11 +3,13 @@ from fastapi import APIRouter, Depends, HTTPException
 from  fastapi.responses import RedirectResponse
 from app.core.config import settings
 from app.schemas.user import UserResponse, UserRegister, UserLogin, Token
+from app.models.oauthstate import OAuthState
 from app.core.security import get_current_user
 from app.db.database import get_db
 from sqlalchemy.orm import Session
 from app.models.user import User
 import requests 
+import secrets
 from app.core.config import settings
 from app.core.security import hash_password, verify_password, create_access_token
 
@@ -70,19 +72,54 @@ def get_me(current_user: User = Depends(get_current_user)):
 
 
 @router.get("/auth/github")
-def github_login():
+def github_login(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    state = secrets.token_urlsafe(32)   
+
+    oauth_state = OAuthState(
+        state=state,
+        user_id=current_user.id
+    )
+
+    db.add(oauth_state)
+    db.commit()
+
     github_url = (
         "https://github.com/login/oauth/authorize"
         f"?client_id={settings.GITHUB_CLIENT_ID}"
         "&scope=repo"
+        f"&state={state}"
     )
 
     return RedirectResponse(url=github_url)
 
 @router.get("/auth/github/callback")
 def github_callback(
-        code: str
+        code: str,
+        state: str,
+        db: Session = Depends(get_db)
     ):
+
+    oauth_state = (
+        db.query(OAuthState)
+        .filter(OAuthState.state == state)
+        .first()
+    )
+
+    if not oauth_state:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid oauth state"
+        )
+
+    user = (
+        db.query(User)
+        .filter(User.id == oauth_state.user_id)
+        .first()
+    )
+
 
     response = requests.post(
         "https://github.com/login/oauth/access_token",
@@ -99,6 +136,11 @@ def github_callback(
     token_data =  response.json()
 
     access_token = token_data["access_token"]
+    if not access_token:
+        raise HTTPException(
+            status_code=400,
+            detail="Failed to retrieve Github access token"
+        )
 
     github_user = requests.get(
          "https://api.github.com/user",
@@ -108,7 +150,40 @@ def github_callback(
         }
     )
 
-    return github_user.json()
+    if github_user.status_code != 200:
+        raise HTTPException(
+            status_code=400,
+            detail="Failed to fetch GitHub user"
+        )
+    
+    existing_github_user = (
+    db.query(User)
+    .filter(User.github_id == github_data["id"])
+    .first()
+    )
+
+    if existing_github_user and existing_github_user.id != user.id:
+        raise HTTPException(
+            status_code=400,
+            detail="GitHub account already linked"
+            )
+    
+
+    github_data = github_user.json()
+
+    user.github_id = github_data["id"]
+    user.github_username = github_data["login"]
+    user.github_access_token = access_token
+
+    db.delete(oauth_state)
+
+    db.commit()
+    db.refresh(user)
+
+    return {
+        "message" : "Github Account connected",
+        "github_username" : user.github_username
+    }
 
 
 
