@@ -1,6 +1,7 @@
 from datetime import datetime
 from sqlalchemy import String, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.sql import func
 
 from app.db.base import Base
 
@@ -16,4 +17,6 @@ class OAuthState(Base):
         ForeignKey("users.id")
     )
 
-    created_at: Mapped[datetime]
+    created_at: Mapped[datetime] = mapped_column(
+        server_default = func.now()
+    )

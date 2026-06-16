@@ -73,9 +73,14 @@ def get_me(current_user: User = Depends(get_current_user)):
 
 @router.get("/auth/github")
 def github_login(
-    current_user: User = Depends(get_current_user),
+    # current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    current_user = (
+        db.query(User)
+        .filter(User.id == 1)
+        .first()
+    )
     state = secrets.token_urlsafe(32)   
 
     oauth_state = OAuthState(
@@ -156,6 +161,8 @@ def github_callback(
             detail="Failed to fetch GitHub user"
         )
     
+    github_data = github_user.json()
+    
     existing_github_user = (
     db.query(User)
     .filter(User.github_id == github_data["id"])
@@ -168,9 +175,6 @@ def github_callback(
             detail="GitHub account already linked"
             )
     
-
-    github_data = github_user.json()
-
     user.github_id = github_data["id"]
     user.github_username = github_data["login"]
     user.github_access_token = access_token
