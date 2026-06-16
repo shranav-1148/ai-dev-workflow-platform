@@ -76,6 +76,11 @@ def github_login(
     # current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    '''
+        Authorizing the Application user with a Github Account Login
+        ultimately allowing the Applciaiton account to be connected
+        to a github account
+    '''
     current_user = (
         db.query(User)
         .filter(User.id == 1)
@@ -106,6 +111,12 @@ def github_callback(
         state: str,
         db: Session = Depends(get_db)
     ):
+
+    '''
+        The github authorization flow redirects 
+        to this endpoint which will ultimately 
+        finish the connection to github account process
+    '''
 
     oauth_state = (
         db.query(OAuthState)

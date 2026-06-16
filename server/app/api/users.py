@@ -9,12 +9,14 @@ router = APIRouter(prefix="/users")
 
 @router.get("/", response_model=list[UserResponse])
 def get_users(db : Session = Depends(get_db)):
+    '''Get all users in the database'''
     users = db.query(User).all()
 
     return users
 
 @router.get("/{id}", response_model=UserResponse)
 def get_user(id: int, db : Session = Depends(get_db)):
+    '''Get a specific user'''
     user = db.query(User).filter(User.id == id).first()
     
     return user
@@ -22,6 +24,7 @@ def get_user(id: int, db : Session = Depends(get_db)):
 
 @router.post("/", response_model=UserResponse)
 def create_user(user: UserCreate, db:Session = Depends(get_db)):
+    '''Create a new user'''
     db_repo = User(
         id=user.id,
         username=user.username,
