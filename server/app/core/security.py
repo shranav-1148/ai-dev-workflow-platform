@@ -50,6 +50,7 @@ def create_access_token(data: dict):
     
 
 def decode_token(token: str):
+    '''Decode an encrypted token'''
     try:
         payload = jwt.decode(
             token,
@@ -61,6 +62,7 @@ def decode_token(token: str):
         raise HTTPException(status_code = 401, detail="Invalid token")
         
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    '''Returns the current user by validating the suer token'''
     payload = decode_token(token)
 
     user_id: str = payload.get("user_id")

@@ -9,6 +9,7 @@ from app.api.users import router as users_router
 from app.api.workflow import router as workflow_router
 from app.api.workflowRun import router as workflowRun_router
 from app.api.workflowStep import router as workflowStep_router
+from app.api.github import router as github_router
 
 
 
@@ -23,3 +24,4 @@ app.include_router(users_router)
 app.include_router(workflow_router)
 app.include_router(workflowRun_router)
 app.include_router(workflowStep_router)
+app.include_router(github_router)

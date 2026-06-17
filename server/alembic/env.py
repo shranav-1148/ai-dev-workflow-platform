@@ -37,6 +37,8 @@ from app.models.workflow import Workflow
 from app.models.workflowStep import WorkflowStep
 from app.models.workflowRun import WorkflowRun
 from app.models.workflowStepRun import WorkflowStepRun
+from app.models.oauthstate import OAuthState
+
 target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,

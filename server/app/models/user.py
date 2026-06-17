@@ -9,6 +9,16 @@ class User(Base):
 
     id : Mapped[int] = mapped_column(Integer, primary_key=True)
     github_id: Mapped[int |  None] = mapped_column(Integer, unique= True, nullable=True)
+
+    github_username: Mapped[str | None] = mapped_column(
+        String,
+        nullable  = True
+    )
+
+    github_access_token : Mapped[str | None] = mapped_column(
+        String,
+        nullable=True
+    )
     username: Mapped[str] = mapped_column(String)
     email: Mapped[str] = mapped_column(String, unique= True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now(timezone.utc))
