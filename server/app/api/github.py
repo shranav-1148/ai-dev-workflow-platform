@@ -15,6 +15,10 @@ router = APIRouter(prefix="/github")
 def get_github_repos(
     current_user: User  = Depends(get_current_user)
 ):
+    '''
+        Get all github repos of the current user that is authenticated
+        with github
+    '''
     if not current_user.github_access_token:
         raise HTTPException(
             status_code=400,
@@ -36,6 +40,9 @@ def import_repos(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    '''
+        Importing repo into the repository table based on a user that owns it.
+    '''
     if not current_user.github_access_token:
         raise HTTPException(
             status_code=400,

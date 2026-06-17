@@ -2,7 +2,10 @@ import requests
 
 
 class GithubService:
-
+    '''
+        The github service class contains
+        all necessary functions for GIthub Service Funtionality
+    '''
     BASE_URL = "https://api.github.com"
 
     def __init__(self, access_token: str):
@@ -15,6 +18,7 @@ class GithubService:
         }
 
     def get_user_repos(self):
+        '''Get all repositories of a connected github user'''
         response = requests.get(
             f"{self.BASE_URL}/user/repos",
             headers=self._headers()
@@ -25,6 +29,7 @@ class GithubService:
         return response.json()
     
     def get_repo_by_id(self, repo_id: int):
+        '''Get a specific repository by id'''
         response = requests.get(
             f"{self.BASE_URL}/repositories/{repo_id}",
             headers=self._headers()
@@ -35,13 +40,3 @@ class GithubService:
 
         return response.json()
 
-
-
-def get_repository(owner: str, repo: str):
-    pass
-
-def get_pull_request(owner: str , repo:str):
-    pass
-
-def get_issues(owner:str, repo:str):
-    pass
