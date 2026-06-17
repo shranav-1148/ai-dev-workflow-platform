@@ -13,6 +13,9 @@ class Repository(Base):
 
     name: Mapped[str] = mapped_column(String)
 
+
+    full_name: Mapped[str] = mapped_column(String)
+
     github_url: Mapped[str] = mapped_column(String)
 
     clone_url: Mapped[str] = mapped_column(String)

@@ -27,7 +27,7 @@ class GithubService:
     def get_repo_by_id(self, repo_id: int):
         response = requests.get(
             f"{self.BASE_URL}/repositories/{repo_id}",
-            headers=self._headers
+            headers=self._headers()
         )
 
         if response.status_code != 200:

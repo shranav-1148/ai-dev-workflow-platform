@@ -39,7 +39,7 @@ def import_repos(
     if not current_user.github_access_token:
         raise HTTPException(
             status_code=400,
-            detail="Github account not connected"
+            details="Github account not connected"
         )
     
     github_service = GithubService(
