@@ -1,19 +1,22 @@
 from app.models.workflowStep import WorkflowStep
 from app.schemas.step_configs import HttpStepConfig, EchoStepConfig
+from app.services.template_resolver import resolve_templates
 import requests
 
 def execute_echo_step(step:WorkflowStep, step_run, context):
-    config = EchoStepConfig(**step.config)
+    raw_config = EchoStepConfig(**step.config)
+    message = resolve_templates(raw_config.message, context)
     return {
         "type": "echo",
-        "message": config.message,
+        "message": message,
     }
 
 def execute_http_step(step: WorkflowStep, step_run, context):
     
-    config = HttpStepConfig(**step.config)
-    
-    response = requests.get(config.url)
+    raw_config = HttpStepConfig(**step.config)
+    url = resolve_templates(raw_config.url, context)
+
+    response = requests.get(url)
 
     data = None
 
@@ -29,6 +32,9 @@ def execute_http_step(step: WorkflowStep, step_run, context):
     }
 
 def execute_github_step(step: WorkflowStep, step_run, context):
+    raw_config = step.config
+
+    repo_id = resolve_templates(raw_config.get("repo_id"), context)
     return {
         "type": "github_repo",
         "message": "github step executed",
