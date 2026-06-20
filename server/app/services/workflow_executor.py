@@ -3,6 +3,7 @@ from app.models.workflowStep import WorkflowStep
 from app.models.workflowStepRun import WorkflowStepRun
 from app.models.workflow import Workflow
 from sqlalchemy.orm import Session
+from app.services.step_executor import execute_step
 
 
 def execute_workflow(
@@ -27,6 +28,8 @@ def execute_workflow(
         .all()
     )
 
+    context= {}
+
     for step in steps:
         try:
             step_run = WorkflowStepRun(
@@ -40,10 +43,9 @@ def execute_workflow(
             db.refresh(step_run)
 
             # Placeholder execution
-            output = {
-                "message" : f"executed step {step.name}",
-                "step_type" : step.step_type
-            }
+            output = execute_step(step, step_run, context)
+
+            context[step.name] = output
 
             step_run.output = output
             step_run.status = "completed"
@@ -64,3 +66,5 @@ def execute_workflow(
     db.refresh(run)
 
     return run
+
+
