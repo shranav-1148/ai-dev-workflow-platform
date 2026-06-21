@@ -46,7 +46,8 @@ def create_workflowStep(
         name = workflow_step.name,
         step_type = workflow_step.step_type,
         config = workflow_step.config,
-        order = workflow_step.order
+        order = workflow_step.order,
+        condition = workflow_step.condition
     )
 
     db.add(db_step)
