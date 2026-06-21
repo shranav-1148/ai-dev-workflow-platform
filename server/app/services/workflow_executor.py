@@ -4,6 +4,7 @@ from app.models.workflowStepRun import WorkflowStepRun
 from app.models.workflow import Workflow
 from sqlalchemy.orm import Session
 from app.services.step_executor import execute_step
+from app.services.condition_evaluator import evaluate_conditions
 
 
 def execute_workflow(
@@ -31,6 +32,19 @@ def execute_workflow(
     context= {}
 
     for step in steps:
+
+        if step.condition:
+            if not evaluate_conditions(step.condition, context):
+                step_run = WorkflowStepRun(
+                    workflow_run_id = run.id,
+                    workflow_step_id = step.id,
+                    status="skipped"
+                )
+                db.add(step_run)
+                db.commit()
+                continue
+        
+        step_run = None
         try:
             step_run = WorkflowStepRun(
                 workflow_run_id = run.id,
@@ -52,8 +66,9 @@ def execute_workflow(
 
             db.commit()
         except Exception as e:
-            step_run.status="failed"
-            step_run.error_message = str(e)
+            if step_run:
+                step_run.status="failed"
+                step_run.error_message = str(e)
 
             run.status = "failed"
             db.commit()
