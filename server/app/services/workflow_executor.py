@@ -11,6 +11,7 @@ def execute_workflow(
         workflow: Workflow,
         db: Session
 ):
+    '''Executing a workflow'''
     run = WorkflowRun(
         workflow_id = workflow.id,
         status="running"

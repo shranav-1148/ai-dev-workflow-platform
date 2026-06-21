@@ -4,6 +4,9 @@ from app.services.template_resolver import resolve_templates
 import requests
 
 def execute_echo_step(step:WorkflowStep, step_run, context):
+    '''
+        Implementation for an echo step meant to display a message report step
+    '''
     raw_config = EchoStepConfig(**step.config)
     message = resolve_templates(raw_config.message, context)
     return {
@@ -12,7 +15,9 @@ def execute_echo_step(step:WorkflowStep, step_run, context):
     }
 
 def execute_http_step(step: WorkflowStep, step_run, context):
-    
+    '''
+        Implementation for the http step, essentially a step that requires a url call 
+    '''
     raw_config = HttpStepConfig(**step.config)
     url = resolve_templates(raw_config.url, context)
 
@@ -32,6 +37,9 @@ def execute_http_step(step: WorkflowStep, step_run, context):
     }
 
 def execute_github_step(step: WorkflowStep, step_run, context):
+    '''
+        Implementation of github step essentially any url call that requires a github repository
+    '''
     raw_config = step.config
 
     repo_id = resolve_templates(raw_config.get("repo_id"), context)
@@ -49,6 +57,7 @@ STEP_REGISTRY = {
 }
 
 def execute_step(step: WorkflowStep, step_run, context):
+    '''Handles different workflow step configurations through a registry'''
     handler = STEP_REGISTRY.get(step.step_type)
 
     if not handler:   
