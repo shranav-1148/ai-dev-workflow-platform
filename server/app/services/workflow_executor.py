@@ -1,6 +1,7 @@
 from app.models.workflowRun import WorkflowRun
 from app.models.workflowStep import WorkflowStep
-from app.models.workflowStepRun import WorkflowStepRun, StepRunStatus
+from app.models.workflowStepRun import WorkflowStepRun
+from app.schemas.StepRunStatus import StepRunStatus
 from app.models.workflow import Workflow
 from sqlalchemy.orm import Session
 from datetime import datetime, UTC

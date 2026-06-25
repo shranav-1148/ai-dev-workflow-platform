@@ -1,12 +1,6 @@
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict, Enum
+from pydantic import BaseModel, ConfigDict
 
-class StepRunStatus(str, Enum):
-    PENDING = "PENDING"
-    RUNNING = "RUNNING"
-    COMPLETED = "COMPLETED"
-    FAILED = "FAILED"
-    SKIPPED = "SKIPPED"
 
 class WorkflowStepRunResponse(BaseModel):
     id: int
