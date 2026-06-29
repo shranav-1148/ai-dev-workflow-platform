@@ -1,12 +1,12 @@
 from app.models.workflowRun import WorkflowRun
 from app.models.workflowStep import WorkflowStep
 from app.models.workflowStepRun import WorkflowStepRun
-from app.schemas.StepRunStatus import StepRunStatus
+from server.app.schemas.RunStatus import RunStatus
 from app.models.workflow import Workflow
 from sqlalchemy.orm import Session
 from app.services.step_executor import execute_step
 from app.services.condition_evaluator import evaluate_conditions
-from app.services.state_machine import transition_step_run
+from app.services.state_machine import transition_run
 
 
 def execute_workflow(
@@ -16,10 +16,16 @@ def execute_workflow(
     '''Executing a workflow'''
     run = WorkflowRun(
         workflow_id = workflow.id,
-        status="running"
+        status=RunStatus.PENDING
     )
 
     db.add(run)
+    db.commit()
+    transition_run(
+        run,
+        RunStatus.RUNNING
+    )
+
     db.commit()
     db.refresh(run)
 
@@ -44,16 +50,16 @@ def execute_workflow(
                 step_run = WorkflowStepRun(
                     workflow_run_id = run.id,
                     workflow_step_id = step.id,
-                    status= StepRunStatus.PENDING
+                    status= RunStatus.PENDING
                 )
 
                 db.add(step_run)
                 db.commit()
                 db.refresh(step_run)
 
-                transition_step_run(
+                transition_run(
                     step_run,
-                    StepRunStatus.SKIPPED
+                    RunStatus.SKIPPED
                 )
                 step_run.error_message = "Condition evaluated to false"                
                 continue
@@ -63,16 +69,16 @@ def execute_workflow(
             step_run = WorkflowStepRun(
                 workflow_run_id = run.id,
                 workflow_step_id = step.id,
-                status= StepRunStatus.PENDING
+                status= RunStatus.PENDING
             )
 
             db.add(step_run)
             db.commit()
             db.refresh(step_run)
 
-            transition_step_run(
+            transition_run(
                 step_run,
-                StepRunStatus.RUNNING
+                RunStatus.RUNNING
             )
             
             db.commit()
@@ -84,28 +90,32 @@ def execute_workflow(
 
             step_run.output = output
             
-            transition_step_run(
+            transition_run(
                 step_run,
-                StepRunStatus.COMPLETED
+                RunStatus.COMPLETED
             )
 
             db.commit()
         except Exception as e:
             if step_run:
                 
-                transition_step_run(
+                transition_run(
                     step_run,
-                    StepRunStatus.FAILED
+                    RunStatus.FAILED
                 )
 
                 step_run.error_message = str(e)
 
-            run.status = "failed"
+            transition_run(
+                run, RunStatus.FAILED
+            )
             db.commit()
 
             raise
     
-    run.status = "completed"
+    transition_run(
+        run, RunStatus.COMPLETED
+    )
 
     db.commit()
     db.refresh(run)

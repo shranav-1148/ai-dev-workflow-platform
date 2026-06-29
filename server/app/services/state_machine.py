@@ -1,31 +1,31 @@
-from app.schemas.StepRunStatus import StepRunStatus
+from server.app.schemas.RunStatus import RunStatus
 from datetime import datetime, UTC
 
 def utc_now():
     return datetime.now(UTC)
 
-STEP_RUN_TRANSITIONS = {
-    StepRunStatus.PEDNING: [
-        StepRunStatus.RUNNING,
-        StepRunStatus.SKIPPED
+RUN_TRANSITIONS = {
+    RunStatus.PENDING: [
+        RunStatus.RUNNING,
+        RunStatus.SKIPPED
     ],
 
-    StepRunStatus.RUNNING: [
-        StepRunStatus.COMPLETED,
-        StepRunStatus.FAILED
+    RunStatus.RUNNING: [
+        RunStatus.COMPLETED,
+        RunStatus.FAILED
     ],
 
-    StepRunStatus.COMPLETED: [],
+    RunStatus.COMPLETED: [],
 
-    StepRunStatus.FAILED: [],
+    RunStatus.FAILED: [],
 
-    StepRunStatus.SKIPPED: []
+    RunStatus.SKIPPED: []
 }
 
-def transition_step_run(step_run, new_status):
-    current_status = step_run.status
+def transition_run(run_object, new_status):
+    current_status = run_object.status
 
-    allowed_transitions = STEP_RUN_TRANSITIONS.get(
+    allowed_transitions = RUN_TRANSITIONS.get(
         current_status, []
     )
 
@@ -36,16 +36,16 @@ def transition_step_run(step_run, new_status):
             f"Invalid transiftion from {current_status} to {new_status}"
         )
     
-    step_run.status = new_status
+    run_object.status = new_status
     
-    if new_status == StepRunStatus.RUNNING:
-        step_run.started_at = utc_now()
+    if new_status == RunStatus.RUNNING:
+        run_object.started_at = utc_now()
 
     if new_status in [
-        StepRunStatus.COMPLETED,
-        StepRunStatus.FAILED,
-        StepRunStatus.SKIPPED
+        RunStatus.COMPLETED,
+        RunStatus.FAILED,
+        RunStatus.SKIPPED
     ]:
-        step_run.completed_at = utc_now()
+        run_object.completed_at = utc_now()
     
     

@@ -1,6 +1,6 @@
 from enum import Enum
 
-class StepRunStatus(str, Enum):
+class RunStatus(str, Enum):
     PENDING = "PENDING"
     RUNNING = "RUNNING"
     COMPLETED = "COMPLETED"
