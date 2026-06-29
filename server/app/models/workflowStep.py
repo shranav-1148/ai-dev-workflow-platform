@@ -30,4 +30,6 @@ class WorkflowStep(Base):
         cascade = "all, delete-orphan"
     )
 
+    depends_on: Mapped[list[int] | None] = mapped_column(JSON)
+
     

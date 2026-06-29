@@ -7,6 +7,7 @@ class WorkflowStepCreate(BaseModel):
     config: dict
     order: int
     condition: str | None = None
+    depends_on: list[int] | None = None
 
 class WorkflowStepUpdate(BaseModel):
     name: str | None = None
@@ -14,6 +15,7 @@ class WorkflowStepUpdate(BaseModel):
     config: dict | None = None
     order: int | None = None
     condition: str | None = None
+    depends_on: list[int] | None = None
 
 class WorkflowStepResponse(BaseModel):
     id: int
@@ -31,3 +33,4 @@ class WorkflowStepResponse(BaseModel):
     )
 
     condition: str | None = None
+    depends_on: list[int] | None = None
