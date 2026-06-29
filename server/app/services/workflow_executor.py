@@ -4,7 +4,6 @@ from app.models.workflowStepRun import WorkflowStepRun
 from app.schemas.StepRunStatus import StepRunStatus
 from app.models.workflow import Workflow
 from sqlalchemy.orm import Session
-from datetime import datetime, UTC
 from app.services.step_executor import execute_step
 from app.services.condition_evaluator import evaluate_conditions
 from app.services.state_machine import transition_step_run
@@ -45,8 +44,7 @@ def execute_workflow(
                 step_run = WorkflowStepRun(
                     workflow_run_id = run.id,
                     workflow_step_id = step.id,
-                    status= StepRunStatus.PENDING,
-                    started_at=datetime.now(UTC),
+                    status= StepRunStatus.PENDING
                 )
 
                 db.add(step_run)
@@ -57,8 +55,6 @@ def execute_workflow(
                     step_run,
                     StepRunStatus.SKIPPED
                 )
-
-                step_run.completed_at = datetime.now(UTC)
                 step_run.error_message = "Condition evaluated to false"                
                 continue
         
@@ -67,8 +63,7 @@ def execute_workflow(
             step_run = WorkflowStepRun(
                 workflow_run_id = run.id,
                 workflow_step_id = step.id,
-                status= StepRunStatus.PENDING,
-                started_at = datetime.now(UTC)
+                status= StepRunStatus.PENDING
             )
 
             db.add(step_run)
@@ -94,8 +89,6 @@ def execute_workflow(
                 StepRunStatus.COMPLETED
             )
 
-            step_run.completed_at = datetime.now(UTC)
-
             db.commit()
         except Exception as e:
             if step_run:
@@ -106,7 +99,6 @@ def execute_workflow(
                 )
 
                 step_run.error_message = str(e)
-                step_run.completed_at = datetime.now(UTC)
 
             run.status = "failed"
             db.commit()
