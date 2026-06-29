@@ -13,7 +13,18 @@ def execute_workflow(
         workflow: Workflow,
         db: Session
 ):
-    '''Executing a workflow'''
+    '''
+        This is the workflow execution engine.
+        Responsible for orchestrating the exectuion lifecycle of an entire workflow.
+        - Create workflow run
+        - load workflow steps
+        - evaluate step conditions
+        - execute step handlers
+        - stores outputs in execution context
+        - creates step execution records
+        - handles failures
+        - updates lifeyce states
+    '''
     run = WorkflowRun(
         workflow_id = workflow.id,
         status=RunStatus.PENDING
