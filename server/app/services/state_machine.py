@@ -1,7 +1,7 @@
 from app.schemas.StepRunStatus import StepRunStatus
 
 STEP_RUN_TRANSITIONS = {
-    StepRunStatus.QUEUED: [
+    StepRunStatus.PEDNING: [
         StepRunStatus.RUNNING,
         StepRunStatus.SKIPPED
     ],
