@@ -8,6 +8,15 @@ from app.services.step_executor import execute_step
 from app.services.condition_evaluator import evaluate_conditions
 from app.services.state_machine import transition_run
 
+def dependencies_satisfied(step, completed_steps):
+    if not step.depends_on:
+        return True
+    
+    return all(
+        dep_id in completed_steps
+        for dep_id in step.depends_on
+    )
+
 
 def execute_workflow(
         workflow: Workflow,
@@ -51,7 +60,28 @@ def execute_workflow(
 
     context= {}
 
+    completed_steps = set()
+
+    failed_steps = set()
     for step in steps:
+        pending_steps = {
+            step.id: step
+        }
+    
+    while pending_steps:
+        runnable_steps = []
+
+        for step in pending_steps.values():
+            if dependencies_satisfied(
+                step,
+                completed_steps
+            ):
+                runnable_steps.append(step)
+
+
+   
+
+    for step in runnable_steps:
 
         if step.condition:
             '''If there is a condition set and the condition is not met
