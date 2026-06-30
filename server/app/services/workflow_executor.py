@@ -8,10 +8,16 @@ from app.services.step_executor import execute_step
 from app.services.condition_evaluator import evaluate_conditions
 from app.services.state_machine import transition_run
 
-def dependencies_satisfied(step, completed_steps):
+def dependencies_satisfied(step, completed_steps, failed_steps):
     if not step.depends_on:
         return True
     
+    for dep_id in step.depends_on:
+        if dep_id in failed_steps:
+            raise Exception(
+                f"Dependency {dep_id} failed"
+            )
+
     return all(
         dep_id in completed_steps
         for dep_id in step.depends_on
@@ -63,10 +69,11 @@ def execute_workflow(
     completed_steps = set()
 
     failed_steps = set()
-    for step in steps:
-        pending_steps = {
-            step.id: step
-        }
+    
+    pending_steps = {
+        step.id: step
+        for step in steps
+    }
     
     while pending_steps:
         runnable_steps = []
@@ -74,20 +81,44 @@ def execute_workflow(
         for step in pending_steps.values():
             if dependencies_satisfied(
                 step,
-                completed_steps
+                completed_steps,
+                failed_steps
             ):
                 runnable_steps.append(step)
 
+        if not runnable_steps:
+            raise Exception("Deadlocked DAG detected")
 
-   
+        for step in runnable_steps:
 
-    for step in runnable_steps:
-
-        if step.condition:
-            '''If there is a condition set and the condition is not met
+            if step.condition:
+                '''If there is a condition set and the condition is not met
                 Create a step Run with Pending status but change it immediately
                 to skipped'''
-            if not evaluate_conditions(step.condition, context):
+                if not evaluate_conditions(step.condition, context):
+                    step_run = WorkflowStepRun(
+                    workflow_run_id = run.id,
+                    workflow_step_id = step.id,
+                    status= RunStatus.PENDING
+                    )
+
+                    db.add(step_run)
+                    db.commit()
+                    db.refresh(step_run)
+
+                    transition_run(
+                        step_run,
+                        RunStatus.SKIPPED
+                    )
+                    step_run.error_message = "Condition evaluated to false"
+                    db.commit() 
+                    completed_steps.add(step.id)
+                    pending_steps.pop(step.id)
+
+                    continue
+        
+            step_run = None
+            try:
                 step_run = WorkflowStepRun(
                     workflow_run_id = run.id,
                     workflow_step_id = step.id,
@@ -100,63 +131,51 @@ def execute_workflow(
 
                 transition_run(
                     step_run,
-                    RunStatus.SKIPPED
+                    RunStatus.RUNNING
                 )
-                step_run.error_message = "Condition evaluated to false"                
-                continue
-        
-        step_run = None
-        try:
-            step_run = WorkflowStepRun(
-                workflow_run_id = run.id,
-                workflow_step_id = step.id,
-                status= RunStatus.PENDING
-            )
-
-            db.add(step_run)
-            db.commit()
-            db.refresh(step_run)
-
-            transition_run(
-                step_run,
-                RunStatus.RUNNING
-            )
             
-            db.commit()
+                db.commit()
 
-            # Placeholder execution
-            output = execute_step(step, step_run, context)
+                # Placeholder execution
+                output = execute_step(step, step_run, context)
 
-            context[step.name] = output
+                context[step.name] = output
 
-            step_run.output = output
+                step_run.output = output
             
-            transition_run(
-                step_run,
-                RunStatus.COMPLETED
-            )
-
-            db.commit()
-        except Exception as e:
-            if step_run:
-                
                 transition_run(
                     step_run,
-                    RunStatus.FAILED
+                    RunStatus.COMPLETED
                 )
 
-                step_run.error_message = str(e)
+                completed_steps.add(step.id)
+                pending_steps.pop(step.id)
 
-            transition_run(
-                run, RunStatus.FAILED
-            )
-            db.commit()
+                db.commit()
+            except Exception as e:
+                if step_run:
+                
+                    transition_run(
+                        step_run,
+                        RunStatus.FAILED
+                    )
 
-            raise
+                    failed_steps.add(step.id)
+                    pending_steps.pop(step.id)
+
+                    step_run.error_message = str(e)
+                    db.commit()
+
+                transition_run(
+                    run, RunStatus.FAILED
+                )
+                db.commit()
+                raise
     
-    transition_run(
+    if str(run.status) != RunStatus.FAILED:
+        transition_run(
         run, RunStatus.COMPLETED
-    )
+        )
 
     db.commit()
     db.refresh(run)
