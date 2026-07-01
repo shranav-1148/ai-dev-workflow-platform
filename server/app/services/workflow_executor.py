@@ -9,6 +9,10 @@ from app.services.condition_evaluator import evaluate_conditions
 from app.services.state_machine import transition_run
 
 def dependencies_satisfied(step, completed_steps):
+    """
+        Determines whether all dependencies for a step
+        have successfully completed.
+    """
     if not step.depends_on:
         return True
 
@@ -18,6 +22,9 @@ def dependencies_satisfied(step, completed_steps):
     )
 
 def has_failed_dependency(step, failed_steps):
+    """
+        Determines whether any dependency for a step has failed.
+    """
     if not step.depends_on:
         return False
     
@@ -25,6 +32,46 @@ def has_failed_dependency(step, failed_steps):
         dep_id in failed_steps
         for dep_id in step.depends_on
     )
+
+
+def validate_workflow_dependencies(steps):
+    """
+        Validates that all dependency references point to existing workflow steps
+    """
+
+    valid_step_ids = {
+        step.id
+        for step in steps
+    }
+
+    for step in steps:
+        if not step.depends_on:
+            continue
+
+        for dep_id in step.depends_on:
+            if dep_id not in valid_step_ids:
+                raise Exception(
+                    f"Step {step.id} depends on non-existent step {dep_id}"
+                )
+            
+def create_step_run(
+        db,
+        run, step
+):
+    """
+        Creates a new workflow step run in PENDING state
+    """
+    step_run = WorkflowStepRun(
+            workflow_run_id=run.id, 
+            workflow_step_id=step.id, 
+            status=RunStatus.PENDING 
+        ) 
+    db.add(step_run) 
+    db.commit() 
+    db.refresh(step_run) 
+    
+    return step_run
+
 
 
 def execute_workflow(
@@ -67,10 +114,10 @@ def execute_workflow(
         .all()
     )
 
-    valid_step_ids = (
+    valid_step_ids = {
         step.id
         for step in steps
-    )
+    }
     for step in steps:
         if not step.depends_on:
             continue
@@ -126,8 +173,11 @@ def execute_workflow(
                 step_run.error_message = "Dependency failed"
 
                 db.commit()
-
                 pending_steps.pop(step.id, None)
+                completed_steps.add(step.id)
+                continue
+            if dependencies_satisfied(step, completed_steps):
+                runnable_steps.append(step)
 
 
         # Runnable check
