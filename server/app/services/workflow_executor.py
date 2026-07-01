@@ -8,18 +8,21 @@ from app.services.step_executor import execute_step
 from app.services.condition_evaluator import evaluate_conditions
 from app.services.state_machine import transition_run
 
-def dependencies_satisfied(step, completed_steps, failed_steps):
+def dependencies_satisfied(step, completed_steps):
     if not step.depends_on:
         return True
-    
-    for dep_id in step.depends_on:
-        if dep_id in failed_steps:
-            raise Exception(
-                f"Dependency {dep_id} failed"
-            )
 
     return all(
         dep_id in completed_steps
+        for dep_id in step.depends_on
+    )
+
+def has_failed_dependency(step, failed_steps):
+    if not step.depends_on:
+        return False
+    
+    return any(
+        dep_id in failed_steps
         for dep_id in step.depends_on
     )
 
@@ -64,6 +67,28 @@ def execute_workflow(
         .all()
     )
 
+    valid_step_ids = (
+        step.id
+        for step in steps
+    )
+    for step in steps:
+        if not step.depends_on:
+            continue
+
+        for dep_id in step.depends_on:
+            if dep_id not in valid_step_ids:
+
+                transition_run(
+                    run, RunStatus.FAILED
+                )
+                db.commit()
+
+                raise Exception(
+                    f"Step {step.id} depends on non-existent step {dep_id}"
+                )
+
+
+
     context= {}
 
     completed_steps = set()
@@ -78,15 +103,37 @@ def execute_workflow(
     while pending_steps:
         runnable_steps = []
 
-        for step in pending_steps.values():
-            if dependencies_satisfied(
-                step,
-                completed_steps,
-                failed_steps
-            ):
-                runnable_steps.append(step)
 
+        for step in list(pending_steps.values()):
+            # Dependency check to decide if tasks can be runnable
+            if has_failed_dependency(step, failed_steps):
+
+                step_run = WorkflowStepRun(
+                    workflow_run_id=run.id,
+                    workflow_step_id=step.id,
+                    status=RunStatus.PENDING
+                )
+
+                db.add(step_run)
+                db.commit()
+                db.refresh(step_run)
+
+                transition_run(
+                    step_run,
+                    RunStatus.SKIPPED
+                )
+
+                step_run.error_message = "Dependency failed"
+
+                db.commit()
+
+                pending_steps.pop(step.id, None)
+
+
+        # Runnable check
         if not runnable_steps:
+            transition_run(run, RunStatus.FAILED)
+            db.commit()
             raise Exception("Deadlocked DAG detected")
 
         for step in runnable_steps:
@@ -113,7 +160,7 @@ def execute_workflow(
                     step_run.error_message = "Condition evaluated to false"
                     db.commit() 
                     completed_steps.add(step.id)
-                    pending_steps.pop(step.id)
+                    pending_steps.pop(step.id, None)
 
                     continue
         
@@ -148,10 +195,11 @@ def execute_workflow(
                     RunStatus.COMPLETED
                 )
 
-                completed_steps.add(step.id)
-                pending_steps.pop(step.id)
-
                 db.commit()
+                completed_steps.add(step.id)
+                pending_steps.pop(step.id, None)
+
+                
             except Exception as e:
                 if step_run:
                 
@@ -159,12 +207,10 @@ def execute_workflow(
                         step_run,
                         RunStatus.FAILED
                     )
-
-                    failed_steps.add(step.id)
-                    pending_steps.pop(step.id)
-
                     step_run.error_message = str(e)
                     db.commit()
+                    pending_steps.pop(step.id, None)
+                    failed_steps.add(step.id)
 
                 transition_run(
                     run, RunStatus.FAILED
@@ -172,7 +218,7 @@ def execute_workflow(
                 db.commit()
                 raise
     
-    if str(run.status) != RunStatus.FAILED:
+    if run.status != RunStatus.FAILED:
         transition_run(
         run, RunStatus.COMPLETED
         )
