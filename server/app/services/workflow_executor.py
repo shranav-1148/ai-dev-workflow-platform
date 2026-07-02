@@ -72,24 +72,17 @@ def create_step_run(
     
     return step_run
 
-
-
 def execute_workflow(
         workflow: Workflow,
         db: Session
 ):
-    '''
-        This is the workflow execution engine.
-        Responsible for orchestrating the exectuion lifecycle of an entire workflow.
-        - Create workflow run
-        - load workflow steps
-        - evaluate step conditions
-        - execute step handlers
-        - stores outputs in execution context
-        - creates step execution records
-        - handles failures
-        - updates lifeyce states
-    '''
+    
+    """
+        Workflow DAG execution engine.
+    """
+
+
+    # Create workflow run
     run = WorkflowRun(
         workflow_id = workflow.id,
         status=RunStatus.PENDING
@@ -97,13 +90,17 @@ def execute_workflow(
 
     db.add(run)
     db.commit()
+    db.refresh(run)
+
     transition_run(
         run,
         RunStatus.RUNNING
     )
 
     db.commit()
-    db.refresh(run)
+
+
+    # Load workflow steps
 
     steps = (
         db.query(WorkflowStep)
@@ -114,168 +111,197 @@ def execute_workflow(
         .all()
     )
 
-    valid_step_ids = {
-        step.id
-        for step in steps
-    }
-    for step in steps:
-        if not step.depends_on:
-            continue
+    # Validate DAG: all the steps have dependencies on steps that exist
 
-        for dep_id in step.depends_on:
-            if dep_id not in valid_step_ids:
+    try:
+        validate_workflow_dependencies(steps)
 
-                transition_run(
-                    run, RunStatus.FAILED
-                )
-                db.commit()
+    except Exception:
+        transition_run(
+            run,
+            RunStatus.FAILED
+        )
 
-                raise Exception(
-                    f"Step {step.id} depends on non-existent step {dep_id}"
-                )
+        db.commit()
+        raise
 
+    # Execution state: Executing the workflow
 
-
-    context= {}
+    context = {}
 
     completed_steps = set()
-
     failed_steps = set()
-    
+
     pending_steps = {
         step.id: step
         for step in steps
     }
-    
+
+    # DAG scheduler loop: looping over all pending steps 
     while pending_steps:
         runnable_steps = []
 
+        # Handle failed dependencies: skip a step that depends on a failed dependency
 
         for step in list(pending_steps.values()):
-            # Dependency check to decide if tasks can be runnable
-            if has_failed_dependency(step, failed_steps):
-
-                step_run = WorkflowStepRun(
-                    workflow_run_id=run.id,
-                    workflow_step_id=step.id,
-                    status=RunStatus.PENDING
-                )
-
-                db.add(step_run)
-                db.commit()
-                db.refresh(step_run)
-
-                transition_run(
-                    step_run,
-                    RunStatus.SKIPPED
-                )
-
-                step_run.error_message = "Dependency failed"
-
-                db.commit()
-                pending_steps.pop(step.id, None)
-                completed_steps.add(step.id)
+            if not has_failed_dependency(
+                step,
+                failed_steps
+            ):
                 continue
-            if dependencies_satisfied(step, completed_steps):
+
+            step_run = create_step_run(
+                db,
+                run,
+                step
+            )
+
+            transition_run(
+                step_run,
+                RunStatus.SKIPPED
+            )
+
+            step_run.error_message = (
+                "Skipped due to failed dependency"
+            )
+
+            db.commit()
+
+            completed_steps.add(step.id)
+            pending_steps.pop(step.id, None)
+        
+        # Find Runnable steps: Find all runnable steps on the current state
+
+        for step in pending_steps.values():
+
+            if dependencies_satisfied(
+                step,
+                completed_steps
+            ):
                 runnable_steps.append(step)
 
+        
+        # Deadlock detection: If a step is not runnable it is a deadlock at this point
 
-        # Runnable check
         if not runnable_steps:
-            transition_run(run, RunStatus.FAILED)
+            transition_run(
+                run,
+                RunStatus.FAILED
+            )
+
             db.commit()
-            raise Exception("Deadlocked DAG detected")
+
+            raise Exception(
+                "Deadlock DAG detected"
+            )
+        
+        # Execute runnable steps: After checking all dependencies run remaining steps
 
         for step in runnable_steps:
 
-            if step.condition:
-                '''If there is a condition set and the condition is not met
-                Create a step Run with Pending status but change it immediately
-                to skipped'''
-                if not evaluate_conditions(step.condition, context):
-                    step_run = WorkflowStepRun(
-                    workflow_run_id = run.id,
-                    workflow_step_id = step.id,
-                    status= RunStatus.PENDING
-                    )
+            # Condition evaluation: Evaluate that condition is met
 
-                    db.add(step_run)
-                    db.commit()
-                    db.refresh(step_run)
+            if step.condition:
+                condition_passed = evaluate_conditions(
+                    step.condition,
+                    context
+                )
+
+                if not condition_passed:
+                    step_run = create_step_run(
+                        db,
+                        run,
+                        step
+                    )
 
                     transition_run(
                         step_run,
                         RunStatus.SKIPPED
                     )
-                    step_run.error_message = "Condition evaluated to false"
-                    db.commit() 
+
+                    step_run.error_message = (
+                        "Condition evaluated to false"
+                    )
+
+                    db.commit()
+
                     completed_steps.add(step.id)
                     pending_steps.pop(step.id, None)
 
                     continue
-        
-            step_run = None
-            try:
-                step_run = WorkflowStepRun(
-                    workflow_run_id = run.id,
-                    workflow_step_id = step.id,
-                    status= RunStatus.PENDING
-                )
 
-                db.add(step_run)
-                db.commit()
-                db.refresh(step_run)
+            # Step Execution: Execution of step
+
+            step_run = None
+
+            try:
+
+                step_run = create_step_run(
+                    db,
+                    run,
+                    step
+                )
 
                 transition_run(
                     step_run,
                     RunStatus.RUNNING
                 )
-            
+
                 db.commit()
 
-                # Placeholder execution
-                output = execute_step(step, step_run, context)
+                output = execute_step(
+                    step,
+                    step_run,
+                    context
+                )
 
                 context[step.name] = output
 
                 step_run.output = output
-            
                 transition_run(
                     step_run,
                     RunStatus.COMPLETED
                 )
 
                 db.commit()
+
                 completed_steps.add(step.id)
+
                 pending_steps.pop(step.id, None)
 
-                
             except Exception as e:
                 if step_run:
-                
                     transition_run(
                         step_run,
                         RunStatus.FAILED
                     )
+
                     step_run.error_message = str(e)
+
                     db.commit()
-                    pending_steps.pop(step.id, None)
-                    failed_steps.add(step.id)
+                
+                failed_steps.add(step.id)
+                pending_steps.pop(step.id, None)
 
                 transition_run(
-                    run, RunStatus.FAILED
+                    run,
+                    RunStatus.FAILED
                 )
+
                 db.commit()
                 raise
     
+    # Complete workflow: Finish workflow
+
     if run.status != RunStatus.FAILED:
+
         transition_run(
-        run, RunStatus.COMPLETED
+            run,
+            RunStatus.COMPLETED
         )
 
-    db.commit()
+        db.commit()
+    
     db.refresh(run)
 
     return run
-
-
