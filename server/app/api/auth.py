@@ -83,7 +83,7 @@ def github_login(
     '''
     current_user = (
         db.query(User)
-        .filter(User.id == 1)
+        .filter(User.id == 3)
         .first()
     )
     state = secrets.token_urlsafe(32)   

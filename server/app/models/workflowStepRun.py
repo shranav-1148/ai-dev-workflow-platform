@@ -21,7 +21,7 @@ class WorkflowStepRun(Base):
         nullable =False
     )
 
-    status: Mapped[str] = mapped_column(String)
+    status: Mapped[str] = mapped_column(String, default="PENDING")
 
     output: Mapped[dict | None] = mapped_column(JSON)
 
@@ -31,7 +31,7 @@ class WorkflowStepRun(Base):
         server_default = func.now()
     )
 
-    completed_at: Mapped[datetime | None]
+    completed_at: Mapped[datetime | None] = mapped_column(server_default = None)
 
     workflow_step = relationship(
         "WorkflowStep",

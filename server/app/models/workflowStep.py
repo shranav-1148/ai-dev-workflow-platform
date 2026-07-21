@@ -20,6 +20,8 @@ class WorkflowStep(Base):
         server_default=func.now()
     )
 
+    condition: Mapped[str | None] = mapped_column(String, nullable=True)
+
     workflow = relationship("Workflow", back_populates = "steps")
 
     step_runs = relationship(
@@ -27,3 +29,7 @@ class WorkflowStep(Base):
         back_populates = "workflow_step",
         cascade = "all, delete-orphan"
     )
+
+    depends_on: Mapped[list[int] | None] = mapped_column(JSON)
+
+    
