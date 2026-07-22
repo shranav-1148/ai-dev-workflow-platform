@@ -18,7 +18,9 @@ class WorkflowStepRunResponse(BaseModel):
     started_at: datetime
 
     completed_at: datetime | None = None
+    attempt_number: int
 
     model_config = ConfigDict(
         from_attributes=True
     )   
+    

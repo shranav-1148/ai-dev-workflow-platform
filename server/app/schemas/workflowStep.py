@@ -1,5 +1,6 @@
 from pydantic import BaseModel, ConfigDict
 from datetime import datetime
+from app.schemas.retrypolicy import RetryPolicy
 
 class WorkflowStepCreate(BaseModel):
     name: str
@@ -8,6 +9,7 @@ class WorkflowStepCreate(BaseModel):
     order: int
     condition: str | None = None
     depends_on: list[int] | None = None
+    retry_policy: RetryPolicy
 
 class WorkflowStepUpdate(BaseModel):
     name: str | None = None
@@ -16,6 +18,7 @@ class WorkflowStepUpdate(BaseModel):
     order: int | None = None
     condition: str | None = None
     depends_on: list[int] | None = None
+    retry_policy: RetryPolicy | None = None
 
 class WorkflowStepResponse(BaseModel):
     id: int
@@ -34,3 +37,4 @@ class WorkflowStepResponse(BaseModel):
 
     condition: str | None = None
     depends_on: list[int] | None = None
+    retry_policy: RetryPolicy

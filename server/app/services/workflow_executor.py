@@ -232,64 +232,66 @@ def execute_workflow(
 
             # Step Execution: Execution of step
 
-            step_run = None
+            step_run = create_step_run(
+                db,
+                run,
+                step
+            )
 
-            try:
-
-                step_run = create_step_run(
-                    db,
-                    run,
-                    step
-                )
-
-                transition_run(
-                    step_run,
-                    RunStatus.RUNNING
-                )
-
-                db.commit()
-
-                output = execute_step(
-                    step,
-                    step_run,
-                    context
-                )
-
-                context[step.name] = output
-
-                step_run.output = output
-                transition_run(
-                    step_run,
-                    RunStatus.COMPLETED
-                )
-
-                db.commit()
-
-                completed_steps.add(step.id)
-
-                pending_steps.pop(step.id, None)
-
-            except Exception as e:
-                if step_run:
+            while True:
+                try: 
                     transition_run(
                         step_run,
-                        RunStatus.FAILED
+                        RunStatus.RUNNING
                     )
-
-                    step_run.error_message = str(e)
-
+                    
                     db.commit()
+                    
+                    output = execute_step(
+                        step,
+                        step_run,
+                        context
+                    )
+                    
+                    context[step.name] = output
+                    
+                    step_run.output = output
+                    transition_run(
+                        step_run,
+                        RunStatus.COMPLETED
+                    )
+                    
+                    db.commit()
+                    
+                    completed_steps.add(step.id)
+                    
+                    pending_steps.pop(step.id, None)
+                                
                 
-                failed_steps.add(step.id)
-                pending_steps.pop(step.id, None)
-
-                transition_run(
-                    run,
-                    RunStatus.FAILED
-                )
-
-                db.commit()
-                raise
+                except Exception as e:
+                    step_run.attempt_count += 1
+                    
+                    if step_run.attempt_count > step.retry_policy.max_attempts:
+                        if step_run:
+                            transition_run(
+                                step_run,
+                                RunStatus.FAILED
+                            )
+                        
+                            step_run.error_message = str(e)
+                        
+                            db.commit()
+                        
+                        failed_steps.add(step.id)
+                        pending_steps.pop(step.id, None)
+                        
+                        transition_run(
+                            run,
+                            RunStatus.FAILED
+                        )
+                        
+                        db.commit()
+                        raise
     
     # Complete workflow: Finish workflow
 
