@@ -7,6 +7,8 @@ from sqlalchemy.orm import Session
 from app.services.step_executor import execute_step
 from app.services.condition_evaluator import evaluate_conditions
 from app.services.state_machine import transition_run
+from app.schemas.retrypolicy import BackoffStrategy
+import time, math
 
 def dependencies_satisfied(step, completed_steps):
     """
@@ -71,6 +73,19 @@ def create_step_run(
     db.refresh(step_run) 
     
     return step_run
+
+def get_retry_delay(policy, attempt):
+    
+    if policy.backoff == BackoffStrategy.NONE:
+        return policy.delay_seconds
+    
+    if policy.backoff == BackoffStrategy.LINEAR:
+        return policy.delay_seconds * attempt
+    
+    if policy.backoff == BackoffStrategy.EXPONENTIAL:
+        return policy.delay_seconds * math.pow(2, attempt -1)
+    
+    raise ValueError("Unknown backoff strategy")
 
 def execute_workflow(
         workflow: Workflow,
@@ -266,6 +281,8 @@ def execute_workflow(
                     completed_steps.add(step.id)
                     
                     pending_steps.pop(step.id, None)
+                    
+                    break
                                 
                 
                 except Exception as e:
@@ -292,6 +309,9 @@ def execute_workflow(
                         
                         db.commit()
                         raise
+                    
+                    # Retry backoff policy needed
+                    time.sleep(step.retry_policy.backoff)
     
     # Complete workflow: Finish workflow
 

@@ -10,4 +10,4 @@ class BackoffStrategy(str, Enum):
 class RetryPolicy(BaseModel):
     max_attempts: int = 1
     delay_seconds: int = 0
-    backoff: BackoffStrategy.NONE
+    backoff: BackoffStrategy = BackoffStrategy.NONE
